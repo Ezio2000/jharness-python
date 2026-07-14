@@ -64,6 +64,29 @@ def test_repository_ownership_and_dependency_updates_are_explicit() -> None:
     assert dependabot.count("interval: weekly") == 2
 
 
+def test_package_readmes_follow_distribution_dependencies() -> None:
+    kernel = (ROOT / "python" / "kernel" / "README.md").read_text().lower()
+    toolkit = (ROOT / "python" / "toolkit" / "README.md").read_text().lower()
+    providers = (ROOT / "python" / "providers" / "README.md").read_text().lower()
+
+    assert "jharness-toolkit" not in kernel
+    assert "jharness.toolkit" not in kernel
+    assert "jharness-providers" not in kernel
+    assert "jharness.providers" not in kernel
+
+    assert "jharness-providers" not in toolkit
+    assert "jharness.providers" not in toolkit
+    assert "https://pypi.org/project/jharness-kernel/" in toolkit
+
+    assert "jharness-toolkit" not in providers
+    assert "jharness.toolkit" not in providers
+    assert "https://pypi.org/project/jharness-kernel/" in providers
+
+    for readme in (kernel, toolkit, providers):
+        assert "**english** | [简体中文](#简体中文)" in readme
+        assert "[english](#jharness-" in readme
+
+
 def test_testpypi_smoke_project_uses_an_explicit_index() -> None:
     script = (ROOT / "scripts" / "verify_testpypi.py").read_text()
     assert script.count('{{ index = "testpypi" }}') == 3

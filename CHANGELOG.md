@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Expanded each distribution README into a standalone PyPI guide while keeping
+  every page within its declared dependency boundary.
 - Added explicit code ownership and weekly dependency update pull requests for
   the uv workspace and GitHub Actions.
 - Made package-index publication fully unattended and added checksum-verified
