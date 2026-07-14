@@ -1,6 +1,6 @@
 [project]
 name = "jharness-toolkit"
-version = "0.1.0"
+version = "0.1.1"
 description = "JHarness tool registry, validation helpers, and execution decorators"
 readme = "README.md"
 requires-python = ">=3.11"

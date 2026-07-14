@@ -8,6 +8,8 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-15
+
 ### Changed
 
 - Expanded each distribution README into a standalone PyPI guide while keeping
@@ -29,5 +31,6 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Portable v0 contracts, 66 conformance cases, diagnostics, and trace verification.
 - Per-distribution Trusted Publisher environments for credential-free first releases.
 
-[Unreleased]: https://github.com/Ezio2000/jharness-python/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Ezio2000/jharness-python/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Ezio2000/jharness-python/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Ezio2000/jharness-python/releases/tag/v0.1.0

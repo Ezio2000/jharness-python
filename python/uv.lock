@@ -468,12 +468,12 @@ wheels = [
 
 [[package]]
 name = "jharness-kernel"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "kernel" }
 
 [[package]]
 name = "jharness-providers"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "providers" }
 dependencies = [
     { name = "httpx" },
@@ -488,7 +488,7 @@ requires-dist = [
 
 [[package]]
 name = "jharness-toolkit"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "toolkit" }
 dependencies = [
     { name = "jharness-kernel" },
