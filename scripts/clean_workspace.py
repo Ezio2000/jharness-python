@@ -18,7 +18,7 @@ _CACHE_DIRECTORY_NAMES = frozenset(
 )
 _GENERATED_FILE_NAMES = frozenset({".coverage", ".DS_Store"})
 _GENERATED_FILE_SUFFIXES = frozenset({".pyc", ".pyo"})
-_PROTECTED_PATHS = (Path(".git"), Path("python/.venv"))
+_PROTECTED_PATHS = (Path(".git"), Path(".venv"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +44,7 @@ def _is_protected(path: Path, root: Path) -> bool:
 
 
 def _project_roots(root: Path) -> tuple[Path, ...]:
-    return (root, *(root / "python" / project for project in _PROJECTS))
+    return (root, *(root / "packages" / project for project in _PROJECTS))
 
 
 def _minimal_targets(paths: set[Path], root: Path) -> tuple[Path, ...]:
@@ -66,9 +66,6 @@ def _initial_targets(root: Path) -> set[Path]:
     synced_spec = root / ".jharness-spec"
     if synced_spec.exists() or synced_spec.is_symlink():
         targets.add(synced_spec)
-    root_environment = root / ".venv"
-    if root_environment.exists() or root_environment.is_symlink():
-        targets.add(root_environment)
     for project_root in _project_roots(root):
         for name in _PROJECT_OUTPUT_NAMES:
             candidate = project_root / name
@@ -108,7 +105,7 @@ def build_cleanup_plan(root: Path) -> CleanupPlan:
     """Collect generated targets without traversing protected environments."""
 
     root = root.resolve()
-    if not (root / "python" / "pyproject.toml").is_file():
+    if not (root / "pyproject.toml").is_file():
         raise ValueError(f"not a recognized workspace root: {root}")
 
     targets = _initial_targets(root)
@@ -150,15 +147,6 @@ def main() -> int:
     if not plan.targets:
         print("workspace is clean")
         return 0
-
-    root_environment = root / ".venv"
-    if args.apply and _is_within(Path(sys.prefix).resolve(), root_environment.resolve()):
-        print(
-            "workspace cleanup failed: run through `uv --project python`; "
-            "the active interpreter is inside the disposable root .venv",
-            file=sys.stderr,
-        )
-        return 1
 
     action = "removing" if args.apply else "would remove"
     for path in plan.targets:

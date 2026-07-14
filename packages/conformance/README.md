@@ -12,7 +12,7 @@ normative runner contract, while this project contains Python implementation
 code. This project is never included in product builds.
 
 ```bash
-uv --project python run conformance \
+uv run conformance \
   .jharness-spec/conformance/cases \
   --spec-dir .jharness-spec/contracts/v0
 ```

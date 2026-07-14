@@ -225,7 +225,7 @@ uses in one response; callers should control runtime execution concurrency with
 ## Testing
 
 Provider adapter behavior is tested in the owning package under
-`python/providers/tests`.
+`packages/providers/tests`.
 
 Default tests use mocked HTTP transports and cover each Chat Completions feature
 independently, including message/content encoding, model options, tool choice,

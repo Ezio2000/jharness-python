@@ -42,16 +42,16 @@ complete/stream protocols.
 Python must be managed with `uv`; never use `pip`.
 
 ```bash
-uv --project python sync --locked
-uv --project python run python scripts/sync_spec.py
-uv --project python run pytest -c python/pyproject.toml -q -p no:cacheprovider
-uv --project python run ruff check --config python/pyproject.toml .
-uv --project python run ruff format --check --config python/pyproject.toml .
-uv --project python run pyright --project python
-uv --project python run conformance \
+uv sync --locked
+uv run python scripts/sync_spec.py
+uv run pytest -c pyproject.toml -q -p no:cacheprovider
+uv run ruff check --config pyproject.toml .
+uv run ruff format --check --config pyproject.toml .
+uv run pyright --project .
+uv run conformance \
   .jharness-spec/conformance/cases \
   --spec-dir .jharness-spec/contracts/v0
-uv --project python run python benchmarks/runtime_smoke.py
+uv run python benchmarks/runtime_smoke.py
 ```
 
 Do not claim completion until the spec pin, implementation, dependency gates,

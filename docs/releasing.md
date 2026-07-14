@@ -57,23 +57,23 @@ short-lived OIDC credential from each package index.
 6. Refresh and verify the lock file:
 
    ```bash
-   uv --project python lock
-   uv --project python sync --locked
-   uv --project python run python scripts/sync_spec.py
+   uv lock
+   uv sync --locked
+   uv run python scripts/sync_spec.py
    ```
 
 7. Run the local release gate:
 
    ```bash
-   uv --project python run python scripts/verify_release.py
-   uv --project python run pytest -c python/pyproject.toml -q -p no:cacheprovider
-   uv --project python run ruff check --config python/pyproject.toml .
-   uv --project python run ruff format --check --config python/pyproject.toml .
-   uv --project python run pyright --project python
-   uv --project python run conformance \
+   uv run python scripts/verify_release.py
+   uv run pytest -c pyproject.toml -q -p no:cacheprovider
+   uv run ruff check --config pyproject.toml .
+   uv run ruff format --check --config pyproject.toml .
+   uv run pyright --project .
+   uv run conformance \
      .jharness-spec/conformance/cases \
      --spec-dir .jharness-spec/contracts/v0
-   uv --project python run python benchmarks/runtime_smoke.py
+   uv run python benchmarks/runtime_smoke.py
    ```
 
 The pull request must merge before the release tag is created. Do not build or upload

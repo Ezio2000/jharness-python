@@ -1,13 +1,13 @@
 [project]
-name = "jharness-toolkit"
-version = "0.1.1"
-description = "JHarness tool registry, validation helpers, and execution decorators"
+name = "jharness-providers"
+version = "0.1.2"
+description = "Concrete model provider adapters for the JHarness runtime"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "JHarness contributors" }]
-keywords = ["ai", "agent", "json-schema", "tools"]
+keywords = ["ai", "anthropic", "deepseek", "model", "openai"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "License :: OSI Approved :: MIT License",
@@ -21,9 +21,8 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "jsonschema>=4.23.0",
+  "httpx>=0.27.0",
   "jharness-kernel>=0.1.0,<0.2.0",
-  "referencing>=0.35.0",
 ]
 
 [project.urls]

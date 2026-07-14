@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON = ROOT / "python"
+PACKAGES = ROOT / "packages"
 PROJECTS = {"kernel", "toolkit", "providers", "conformance"}
 IMPORT_ROOTS = {
     "kernel": "jharness.kernel",
@@ -45,10 +45,10 @@ PUBLIC_MODULES = {
     "conformance": {"conformance"},
 }
 SOURCE_ROOTS = {
-    "kernel": PYTHON / "kernel" / "src" / "jharness" / "kernel",
-    "toolkit": PYTHON / "toolkit" / "src" / "jharness" / "toolkit",
-    "providers": PYTHON / "providers" / "src" / "jharness" / "providers",
-    "conformance": PYTHON / "conformance" / "src" / "conformance",
+    "kernel": PACKAGES / "kernel" / "src" / "jharness" / "kernel",
+    "toolkit": PACKAGES / "toolkit" / "src" / "jharness" / "toolkit",
+    "providers": PACKAGES / "providers" / "src" / "jharness" / "providers",
+    "conformance": PACKAGES / "conformance" / "src" / "conformance",
 }
 
 
@@ -79,7 +79,7 @@ def requirement_name(requirement: str) -> str:
 
 
 def project_dependencies(owner: str) -> set[str]:
-    document = tomllib.loads((PYTHON / owner / "pyproject.toml").read_text())
+    document = tomllib.loads((PACKAGES / owner / "pyproject.toml").read_text())
     project = cast(dict[str, Any], document["project"])
     dependencies = cast(list[str], project.get("dependencies", []))
     return {
@@ -133,11 +133,17 @@ def test_kernel_has_only_standard_library_dependencies() -> None:
 
 
 def test_workspace_contains_three_products_and_one_development_project() -> None:
-    workspace = tomllib.loads((PYTHON / "pyproject.toml").read_text())
+    workspace = tomllib.loads((ROOT / "pyproject.toml").read_text())
     uv = cast(dict[str, Any], workspace["tool"])["uv"]
     members = set(cast(list[str], cast(dict[str, Any], uv)["workspace"]["members"]))
-    assert members == {"kernel", "toolkit", "providers", "conformance"}
-    assert {PROJECT_NAMES[member] for member in members if member != "conformance"} == {
+    assert members == {
+        "packages/kernel",
+        "packages/toolkit",
+        "packages/providers",
+        "packages/conformance",
+    }
+    owners = {Path(member).name for member in members}
+    assert {PROJECT_NAMES[owner] for owner in owners if owner != "conformance"} == {
         "jharness-kernel",
         "jharness-toolkit",
         "jharness-providers",
@@ -146,7 +152,7 @@ def test_workspace_contains_three_products_and_one_development_project() -> None
 
 def test_workspace_projects_declare_local_readmes() -> None:
     for owner in sorted(PROJECTS):
-        project_root = PYTHON / owner
+        project_root = PACKAGES / owner
         document = tomllib.loads((project_root / "pyproject.toml").read_text())
         project = cast(dict[str, Any], document["project"])
         assert project.get("readme") == "README.md"
@@ -155,7 +161,7 @@ def test_workspace_projects_declare_local_readmes() -> None:
 
 def test_product_namespace_has_single_owner_per_child_and_no_shared_initializer() -> None:
     for owner in ("kernel", "toolkit", "providers"):
-        namespace = PYTHON / owner / "src" / "jharness"
+        namespace = PACKAGES / owner / "src" / "jharness"
         assert not (namespace / "__init__.py").exists()
         assert {path.name for path in namespace.iterdir() if path.is_dir()} == {owner}
         assert (namespace / owner / "__init__.py").is_file()
@@ -163,3 +169,4 @@ def test_product_namespace_has_single_owner_per_child_and_no_shared_initializer(
 
 def test_repository_has_no_language_aggregation_tree() -> None:
     assert not (ROOT / "sdks").exists()
+    assert not (ROOT / "python").exists()
