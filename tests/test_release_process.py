@@ -40,6 +40,7 @@ def test_release_workflow_uses_one_artifact_and_trusted_publishers() -> None:
     assert "gh release create" in workflow
     assert 'version="${RELEASE_TAG#v}"' in workflow
     assert 'python scripts/verify_testpypi.py "${RELEASE_TAG#v}"' in workflow
+    assert "sha256sum --check dist/SHA256SUMS" in workflow
     assert "required reviewers" not in workflow.lower()
 
 
