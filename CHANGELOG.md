@@ -10,6 +10,8 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Added explicit code ownership and weekly dependency update pull requests for
+  the uv workspace and GitHub Actions.
 - Made package-index publication fully unattended and added checksum-verified
   continuation from an immutable release artifact.
 - Isolated TestPyPI package selection so third-party dependencies resolve only from

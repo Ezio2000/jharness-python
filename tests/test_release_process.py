@@ -45,6 +45,25 @@ def test_release_workflow_uses_one_artifact_and_trusted_publishers() -> None:
     assert "required reviewers" not in workflow.lower()
 
 
+def test_repository_ownership_and_dependency_updates_are_explicit() -> None:
+    owners = (ROOT / ".github" / "CODEOWNERS").read_text()
+    assert "* @Ezio2000" in owners
+    for protected_path in (
+        "/.github/workflows/**",
+        "/.github/dependabot.yml",
+        "/python/**/pyproject.toml",
+        "/python/uv.lock",
+        "/scripts/**",
+    ):
+        assert protected_path in owners
+
+    dependabot = (ROOT / ".github" / "dependabot.yml").read_text()
+    assert "package-ecosystem: uv" in dependabot
+    assert "directory: /python" in dependabot
+    assert "package-ecosystem: github-actions" in dependabot
+    assert dependabot.count("interval: weekly") == 2
+
+
 def test_testpypi_smoke_project_uses_an_explicit_index() -> None:
     script = (ROOT / "scripts" / "verify_testpypi.py").read_text()
     assert script.count('{{ index = "testpypi" }}') == 3

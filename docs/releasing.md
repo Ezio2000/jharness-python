@@ -23,15 +23,25 @@ controls. They cannot be expressed solely in the repository:
    | `jharness-providers` | `testpypi-jharness-providers` | `pypi-jharness-providers` |
 
 2. Leave all six environments without required reviewers or wait timers so a release
-   tag can complete without manual intervention.
+   tag can complete without manual intervention. Restrict TestPyPI environments to
+   release tags matching `v*`; restrict PyPI environments to those tags plus `main`,
+   which is required only for checksum-verified recovery dispatches.
 3. Configure one Pending Trusted Publisher for every table row on both TestPyPI
    and PyPI. Each publisher uses repository `Ezio2000/jharness-python`, workflow
    `release.yml`, and its exact environment name from the table. Separate
    environments give each new project a unique initial OIDC identity.
-4. Protect `main`: require pull requests, the CI jobs, resolved review comments, and
-   a linear or otherwise intentional history policy.
-5. Protect `v*` tags so only release maintainers can create or delete them.
-6. Enable private vulnerability reporting and GitHub security advisories.
+4. Protect `main`: require pull requests, every CI job, resolved review comments, and
+   linear history; reject force pushes and deletion. A single-maintainer repository
+   uses zero required approvals so the maintainer can merge after CI without bypassing
+   the pull-request gate.
+5. Protect `v*` tags so only the repository administrator can create them and existing
+   release tags cannot be updated or deleted.
+6. Allow GitHub-owned Actions plus `astral-sh/setup-uv` and
+   `pypa/gh-action-pypi-publish`; require every Action reference to use a full commit
+   SHA.
+7. Enable Dependabot alerts and security updates, private vulnerability reporting,
+   secret scanning, and push protection. Weekly version-update pull requests are
+   configured in `.github/dependabot.yml`.
 
 No long-lived PyPI token is stored in GitHub. The release workflow requests a scoped,
 short-lived OIDC credential from each package index.
@@ -89,10 +99,9 @@ The tag starts `.github/workflows/release.yml`, which:
 4. verifies archive ownership, isolated imports, package metadata, and checksums;
 5. publishes each distribution to TestPyPI through its own trusted publisher;
 6. installs all three TestPyPI versions and executes public smoke examples;
-7. pauses for the three configured `pypi-*` environment approvals;
-8. publishes each distribution through its own PyPI trusted publisher and verifies
+7. publishes each distribution through its own PyPI trusted publisher and verifies
    a clean installation;
-9. creates the GitHub Release with all distributions and `SHA256SUMS`.
+8. creates the GitHub Release with all distributions and `SHA256SUMS`.
 
 The release is complete only when every job is green and all three PyPI projects show
 the same version. No environment approval or package-index token is required.

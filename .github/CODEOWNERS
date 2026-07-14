@@ -1,0 +1,8 @@
+* @Ezio2000
+
+# Keep release and dependency policy visibly owned by the maintainer.
+/.github/workflows/** @Ezio2000
+/.github/dependabot.yml @Ezio2000
+/python/**/pyproject.toml @Ezio2000
+/python/uv.lock @Ezio2000
+/scripts/** @Ezio2000
