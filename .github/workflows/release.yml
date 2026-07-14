@@ -211,6 +211,7 @@ jobs:
   publish-pypi:
     name: Publish ${{ matrix.distribution }} to PyPI
     needs: verify-testpypi
+    if: always() && needs.verify-testpypi.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -256,6 +257,7 @@ jobs:
   verify-pypi:
     name: Verify PyPI installation
     needs: publish-pypi
+    if: always() && needs.publish-pypi.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -292,6 +294,7 @@ jobs:
   github-release:
     name: Create GitHub Release
     needs: verify-pypi
+    if: always() && needs.verify-pypi.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
