@@ -35,7 +35,7 @@ def test_every_local_markdown_link_resolves() -> None:
     broken: list[str] = []
     markdown_files = [ROOT / "README.md", ROOT / "AGENTS.md"]
     markdown_files.extend((ROOT / "docs").rglob("*.md"))
-    markdown_files.extend((ROOT / "python").glob("*/README.md"))
+    markdown_files.extend((ROOT / "packages").glob("*/README.md"))
     markdown_files.extend((ROOT / "tests").glob("*.md"))
     pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
     for path in markdown_files:
@@ -57,7 +57,7 @@ def test_ci_references_existing_sources_and_required_commands() -> None:
 
     referenced = set(
         re.findall(
-            r"(?:benchmarks|examples|python|scripts|tests)/[A-Za-z0-9_./-]+\.py",
+            r"(?:benchmarks|examples|packages|scripts|tests)/[A-Za-z0-9_./-]+\.py",
             workflow,
         )
     )

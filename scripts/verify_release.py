@@ -28,7 +28,7 @@ _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 def _project(owner: str) -> dict[str, Any]:
-    path = ROOT / "python" / owner / "pyproject.toml"
+    path = ROOT / "packages" / owner / "pyproject.toml"
     document = tomllib.loads(path.read_text())
     return cast(dict[str, Any], document["project"])
 

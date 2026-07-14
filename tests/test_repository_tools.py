@@ -26,7 +26,7 @@ def _run_cleaner(root: Path, *arguments: str) -> subprocess.CompletedProcess[str
 
 def _workspace(tmp_path: Path) -> Path:
     workspace = tmp_path / "workspace"
-    _write(workspace / "python" / "pyproject.toml", "[project]\nname = 'test'\n")
+    _write(workspace / "pyproject.toml", "[project]\nname = 'test'\n")
     return workspace
 
 
@@ -35,14 +35,12 @@ def test_workspace_cleaner_previews_then_removes_only_generated_targets(
 ) -> None:
     workspace = _workspace(tmp_path)
     root_environment = workspace / ".venv" / "marker"
-    uv_environment = workspace / "python" / ".venv" / "marker"
-    nested_cache = workspace / "python" / "kernel" / "src" / "jharness" / "__pycache__" / "x.pyc"
+    nested_cache = workspace / "packages" / "kernel" / "src" / "jharness" / "__pycache__" / "x.pyc"
     ordinary_cache = workspace / "examples" / "python" / "__pycache__" / "example.pyc"
     coverage_report = workspace / "coverage" / "index.html"
     retained_source = workspace / "src" / "application.py"
     for path in (
         root_environment,
-        uv_environment,
         nested_cache,
         ordinary_cache,
         coverage_report,
@@ -53,14 +51,12 @@ def test_workspace_cleaner_previews_then_removes_only_generated_targets(
     preview = _run_cleaner(workspace)
 
     assert preview.returncode == 0, preview.stderr
-    assert "would remove .venv" in preview.stdout
-    assert "would remove python/kernel/src/jharness/__pycache__" in preview.stdout
-    assert "python/.venv" not in preview.stdout
+    assert ".venv" not in preview.stdout
+    assert "would remove packages/kernel/src/jharness/__pycache__" in preview.stdout
     assert all(
         path.exists()
         for path in (
             root_environment,
-            uv_environment,
             nested_cache,
             ordinary_cache,
             coverage_report,
@@ -71,11 +67,10 @@ def test_workspace_cleaner_previews_then_removes_only_generated_targets(
     applied = _run_cleaner(workspace, "--apply")
 
     assert applied.returncode == 0, applied.stderr
-    assert not root_environment.exists()
+    assert root_environment.exists()
     assert not nested_cache.exists()
     assert not ordinary_cache.exists()
     assert not coverage_report.exists()
-    assert uv_environment.exists()
     assert retained_source.exists()
 
 

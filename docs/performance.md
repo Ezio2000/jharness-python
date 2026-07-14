@@ -69,7 +69,7 @@ content checksum.
 Run from the repository root with the uv-selected interpreter:
 
 ```bash
-uv --project python run python benchmarks/runtime_smoke.py
+uv run python benchmarks/runtime_smoke.py
 ```
 
 The benchmark compares identical asynchronous tools under serial and

@@ -186,7 +186,7 @@ wheels = [
 [[package]]
 name = "conformance"
 version = "0.1.0"
-source = { editable = "conformance" }
+source = { editable = "packages/conformance" }
 dependencies = [
     { name = "jharness-kernel" },
     { name = "jharness-toolkit" },
@@ -196,8 +196,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "jharness-kernel", editable = "kernel" },
-    { name = "jharness-toolkit", editable = "toolkit" },
+    { name = "jharness-kernel", editable = "packages/kernel" },
+    { name = "jharness-toolkit", editable = "packages/toolkit" },
     { name = "jsonschema", specifier = ">=4.23.0" },
     { name = "referencing", specifier = ">=0.35.0" },
 ]
@@ -468,13 +468,13 @@ wheels = [
 
 [[package]]
 name = "jharness-kernel"
-version = "0.1.1"
-source = { editable = "kernel" }
+version = "0.1.2"
+source = { editable = "packages/kernel" }
 
 [[package]]
 name = "jharness-providers"
-version = "0.1.1"
-source = { editable = "providers" }
+version = "0.1.2"
+source = { editable = "packages/providers" }
 dependencies = [
     { name = "httpx" },
     { name = "jharness-kernel" },
@@ -483,13 +483,13 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
-    { name = "jharness-kernel", editable = "kernel" },
+    { name = "jharness-kernel", editable = "packages/kernel" },
 ]
 
 [[package]]
 name = "jharness-toolkit"
-version = "0.1.1"
-source = { editable = "toolkit" }
+version = "0.1.2"
+source = { editable = "packages/toolkit" }
 dependencies = [
     { name = "jharness-kernel" },
     { name = "jsonschema" },
@@ -498,7 +498,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "jharness-kernel", editable = "kernel" },
+    { name = "jharness-kernel", editable = "packages/kernel" },
     { name = "jsonschema", specifier = ">=4.23.0" },
     { name = "referencing", specifier = ">=0.35.0" },
 ]
@@ -527,10 +527,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "conformance", editable = "conformance" },
-    { name = "jharness-kernel", editable = "kernel" },
-    { name = "jharness-providers", editable = "providers" },
-    { name = "jharness-toolkit", editable = "toolkit" },
+    { name = "conformance", editable = "packages/conformance" },
+    { name = "jharness-kernel", editable = "packages/kernel" },
+    { name = "jharness-providers", editable = "packages/providers" },
+    { name = "jharness-toolkit", editable = "packages/toolkit" },
 ]
 
 [package.metadata.requires-dev]

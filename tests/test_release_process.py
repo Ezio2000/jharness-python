@@ -23,7 +23,7 @@ def test_release_workflow_uses_one_artifact_and_trusted_publishers() -> None:
     workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text()
     assert "scripts/sync_spec.py" in workflow
     assert "verify_release.py --tag" in workflow
-    assert workflow.count("uv --project python build") == 1
+    assert workflow.count("uv build") == 1
     assert "publish-testpypi" in workflow
     assert "verify-testpypi" in workflow
     assert "publish-pypi" in workflow
@@ -51,23 +51,24 @@ def test_repository_ownership_and_dependency_updates_are_explicit() -> None:
     for protected_path in (
         "/.github/workflows/**",
         "/.github/dependabot.yml",
-        "/python/**/pyproject.toml",
-        "/python/uv.lock",
+        "/pyproject.toml",
+        "/packages/**/pyproject.toml",
+        "/uv.lock",
         "/scripts/**",
     ):
         assert protected_path in owners
 
     dependabot = (ROOT / ".github" / "dependabot.yml").read_text()
     assert "package-ecosystem: uv" in dependabot
-    assert "directory: /python" in dependabot
+    assert "directory: /" in dependabot
     assert "package-ecosystem: github-actions" in dependabot
     assert dependabot.count("interval: weekly") == 2
 
 
 def test_package_readmes_follow_distribution_dependencies() -> None:
-    kernel = (ROOT / "python" / "kernel" / "README.md").read_text(encoding="utf-8").lower()
-    toolkit = (ROOT / "python" / "toolkit" / "README.md").read_text(encoding="utf-8").lower()
-    providers = (ROOT / "python" / "providers" / "README.md").read_text(encoding="utf-8").lower()
+    kernel = (ROOT / "packages" / "kernel" / "README.md").read_text(encoding="utf-8").lower()
+    toolkit = (ROOT / "packages" / "toolkit" / "README.md").read_text(encoding="utf-8").lower()
+    providers = (ROOT / "packages" / "providers" / "README.md").read_text(encoding="utf-8").lower()
 
     assert "jharness-toolkit" not in kernel
     assert "jharness.toolkit" not in kernel

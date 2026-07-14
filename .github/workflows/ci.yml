@@ -30,24 +30,24 @@ jobs:
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
-          cache-dependency-glob: python/uv.lock
+          cache-dependency-glob: uv.lock
 
       - name: Install locked dependencies
-        run: uv --project python sync --locked
+        run: uv sync --locked
 
       - name: Synchronize pinned specification
-        run: uv --project python run python scripts/sync_spec.py
+        run: uv run python scripts/sync_spec.py
 
       - name: Smoke test conformance entry point
-        run: uv --project python run conformance --help
+        run: uv run conformance --help
 
       - name: Verify coordinated release metadata
-        run: uv --project python run python scripts/verify_release.py
+        run: uv run python scripts/verify_release.py
 
       - name: Check public export documentation
         shell: bash
         run: |
-          uv --project python run python - <<'PY'
+          uv run python - <<'PY'
           import importlib
           import inspect
           import typing
@@ -78,47 +78,47 @@ jobs:
           PY
 
       - name: Lint
-        run: uv --project python run ruff check --config python/pyproject.toml .
+        run: uv run ruff check --config pyproject.toml .
 
       - name: Check formatting
-        run: uv --project python run ruff format --check --config python/pyproject.toml .
+        run: uv run ruff format --check --config pyproject.toml .
 
       - name: Type-check
-        run: uv --project python run pyright --project python
+        run: uv run pyright --project .
 
       - name: Test with branch coverage
         env:
           COVERAGE_FILE: ${{ runner.temp }}/.coverage
         run: >-
-          uv --project python run pytest
-          -c python/pyproject.toml
+          uv run pytest
+          -c pyproject.toml
           -q
           -p no:cacheprovider
           --cov
-          --cov-config=python/pyproject.toml
+          --cov-config=pyproject.toml
           --cov-report=term-missing:skip-covered
 
       - name: Repeat timing and ownership regressions
         shell: bash
         run: |
           for attempt in 1 2 3; do
-            uv --project python run pytest \
-              -c python/pyproject.toml \
+            uv run pytest \
+              -c pyproject.toml \
               -q \
               -p no:cacheprovider \
-              python/kernel/tests/test_runtime.py \
-              python/kernel/tests/test_diagnostics.py
+              packages/kernel/tests/test_runtime.py \
+              packages/kernel/tests/test_diagnostics.py
           done
 
       - name: Build and verify the three product distributions
         shell: bash
         run: |
           for package in jharness-kernel jharness-toolkit jharness-providers; do
-            uv --project python build \
+            uv build \
               --package "$package" \
               --out-dir "$RUNNER_TEMP/dist"
           done
-          uv --project python run python scripts/verify_wheels.py "$RUNNER_TEMP/dist"
+          uv run python scripts/verify_wheels.py "$RUNNER_TEMP/dist"
 
   runtime:
     name: Python ${{ matrix.python-version }} (${{ matrix.os }})
@@ -143,22 +143,22 @@ jobs:
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
-          cache-dependency-glob: python/uv.lock
+          cache-dependency-glob: uv.lock
 
       - name: Install locked dependencies
-        run: uv --project python sync --locked
+        run: uv sync --locked
 
       - name: Synchronize pinned specification
-        run: uv --project python run python scripts/sync_spec.py
+        run: uv run python scripts/sync_spec.py
 
       - name: Test runtime
-        run: uv --project python run pytest -c python/pyproject.toml -q -p no:cacheprovider
+        run: uv run pytest -c pyproject.toml -q -p no:cacheprovider
 
       - name: Run conformance CLI
         run: >-
-          uv --project python run conformance
+          uv run conformance
           .jharness-spec/conformance/cases
           --spec-dir .jharness-spec/contracts/v0
 
       - name: Run benchmark
-        run: uv --project python run python benchmarks/runtime_smoke.py
+        run: uv run python benchmarks/runtime_smoke.py

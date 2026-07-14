@@ -6,10 +6,10 @@ documentation links, examples, and repository maintenance tools.
 
 Behavior owned by one Python project stays with that project:
 
-- kernel runtime and wire behavior: [`python/kernel/tests`](../python/kernel/tests/);
-- concrete tool support: [`python/toolkit/tests`](../python/toolkit/tests/);
-- provider adapters: [`python/providers/tests`](../python/providers/tests/);
-- Python fixture-runner behavior: [`python/conformance/tests`](../python/conformance/tests/).
+- kernel runtime and wire behavior: [`packages/kernel/tests`](../packages/kernel/tests/);
+- concrete tool support: [`packages/toolkit/tests`](../packages/toolkit/tests/);
+- provider adapters: [`packages/providers/tests`](../packages/providers/tests/);
+- Python fixture-runner behavior: [`packages/conformance/tests`](../packages/conformance/tests/).
 
 Portable runtime behavior belongs in the pinned specification snapshot under
 `.jharness-spec/conformance/cases`,

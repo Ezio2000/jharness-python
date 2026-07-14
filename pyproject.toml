@@ -25,10 +25,10 @@ jharness-toolkit = { workspace = true }
 
 [tool.uv.workspace]
 members = [
-  "conformance",
-  "kernel",
-  "providers",
-  "toolkit",
+  "packages/conformance",
+  "packages/kernel",
+  "packages/providers",
+  "packages/toolkit",
 ]
 
 [dependency-groups]
@@ -57,7 +57,7 @@ known-first-party = ["conformance", "jharness"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = [".", "../tests"]
+testpaths = ["packages", "tests"]
 
 [tool.coverage.run]
 branch = true
@@ -75,6 +75,6 @@ show_missing = true
 skip_covered = true
 
 [tool.pyright]
-include = [".", "../benchmarks", "../examples", "../tests"]
+include = ["packages", "benchmarks", "examples", "tests"]
 pythonVersion = "3.11"
 typeCheckingMode = "strict"

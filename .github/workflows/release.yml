@@ -50,53 +50,53 @@ jobs:
         uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
-          cache-dependency-glob: python/uv.lock
+          cache-dependency-glob: uv.lock
 
       - name: Install locked dependencies
         if: github.event_name == 'push'
-        run: uv --project python sync --locked
+        run: uv sync --locked
 
       - name: Synchronize pinned specification
         if: github.event_name == 'push'
-        run: uv --project python run python scripts/sync_spec.py
+        run: uv run python scripts/sync_spec.py
 
       - name: Verify tag, coordinated versions, and changelog
         if: github.event_name == 'push'
-        run: uv --project python run python scripts/verify_release.py --tag "$RELEASE_TAG"
+        run: uv run python scripts/verify_release.py --tag "$RELEASE_TAG"
 
       - name: Run release quality gate
         if: github.event_name == 'push'
         shell: bash
         run: |
-          uv --project python run ruff check --config python/pyproject.toml .
-          uv --project python run ruff format --check --config python/pyproject.toml .
-          uv --project python run pyright --project python
-          uv --project python run pytest \
-            -c python/pyproject.toml \
+          uv run ruff check --config pyproject.toml .
+          uv run ruff format --check --config pyproject.toml .
+          uv run pyright --project .
+          uv run pytest \
+            -c pyproject.toml \
             -q \
             -p no:cacheprovider \
             --cov \
-            --cov-config=python/pyproject.toml \
+            --cov-config=pyproject.toml \
             --cov-report=term-missing:skip-covered
-          uv --project python run conformance \
+          uv run conformance \
             .jharness-spec/conformance/cases \
             --spec-dir .jharness-spec/contracts/v0
-          uv --project python run python benchmarks/runtime_smoke.py
+          uv run python benchmarks/runtime_smoke.py
 
       - name: Build the three product distributions
         if: github.event_name == 'push'
         shell: bash
         run: |
           for package in jharness-kernel jharness-toolkit jharness-providers; do
-            uv --project python build --package "$package" --out-dir dist
+            uv build --package "$package" --out-dir dist
           done
 
       - name: Verify publishable artifacts
         if: github.event_name == 'push'
         shell: bash
         run: |
-          uv --project python run python scripts/verify_wheels.py dist
-          uv --project python run twine check dist/*
+          uv run python scripts/verify_wheels.py dist
+          uv run twine check dist/*
           sha256sum dist/* > dist/SHA256SUMS
 
       - name: Recover the verified artifact from the failed release

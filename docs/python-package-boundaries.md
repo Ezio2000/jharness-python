@@ -1,7 +1,8 @@
 # Python Package Boundaries
 
-Python uses a uv workspace rooted at `python/` with standard `src` layouts.
-Commands run from the repository root with `uv --project python`.
+Python uses a uv workspace rooted at the repository root with standard `src`
+layouts under `packages/`. Commands run directly from the repository root with
+`uv`.
 
 ## Distributions and Workspace Projects
 
@@ -58,9 +59,9 @@ transitive package is never treated as an implicit direct dependency.
 ## Source Layout
 
 ```text
-python/
-  pyproject.toml
-  uv.lock
+pyproject.toml
+uv.lock
+packages/
   kernel/
     pyproject.toml
     src/jharness/kernel/
