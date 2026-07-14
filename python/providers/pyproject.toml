@@ -1,6 +1,6 @@
 [project]
 name = "jharness-providers"
-version = "0.1.0"
+version = "0.1.1"
 description = "Concrete model provider adapters for the JHarness runtime"
 readme = "README.md"
 requires-python = ">=3.11"
