@@ -65,9 +65,9 @@ def test_repository_ownership_and_dependency_updates_are_explicit() -> None:
 
 
 def test_package_readmes_follow_distribution_dependencies() -> None:
-    kernel = (ROOT / "python" / "kernel" / "README.md").read_text().lower()
-    toolkit = (ROOT / "python" / "toolkit" / "README.md").read_text().lower()
-    providers = (ROOT / "python" / "providers" / "README.md").read_text().lower()
+    kernel = (ROOT / "python" / "kernel" / "README.md").read_text(encoding="utf-8").lower()
+    toolkit = (ROOT / "python" / "toolkit" / "README.md").read_text(encoding="utf-8").lower()
+    providers = (ROOT / "python" / "providers" / "README.md").read_text(encoding="utf-8").lower()
 
     assert "jharness-toolkit" not in kernel
     assert "jharness.toolkit" not in kernel
