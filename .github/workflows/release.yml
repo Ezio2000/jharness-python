@@ -83,13 +83,26 @@ jobs:
           retention-days: 30
 
   publish-testpypi:
-    name: Publish to TestPyPI
+    name: Publish ${{ matrix.distribution }} to TestPyPI
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distribution: jharness-kernel
+            archive_prefix: jharness_kernel
+            environment: testpypi-jharness-kernel
+          - distribution: jharness-toolkit
+            archive_prefix: jharness_toolkit
+            environment: testpypi-jharness-toolkit
+          - distribution: jharness-providers
+            archive_prefix: jharness_providers
+            environment: testpypi-jharness-providers
     environment:
-      name: testpypi
-      url: https://test.pypi.org/p/jharness-kernel
+      name: ${{ matrix.environment }}
+      url: https://test.pypi.org/p/${{ matrix.distribution }}
     permissions:
       id-token: write
 
@@ -100,8 +113,14 @@ jobs:
           name: distributions-${{ github.ref_name }}
           path: dist
 
-      - name: Remove non-distribution checksums
-        run: rm dist/SHA256SUMS
+      - name: Select this distribution from the immutable artifact
+        shell: bash
+        env:
+          ARCHIVE_PREFIX: ${{ matrix.archive_prefix }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          find dist -maxdepth 1 -type f ! -name "${ARCHIVE_PREFIX}-${version}*" -delete
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
 
       - name: Publish with TestPyPI trusted publishing
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
@@ -160,13 +179,26 @@ jobs:
           done
 
   publish-pypi:
-    name: Publish to PyPI
+    name: Publish ${{ matrix.distribution }} to PyPI
     needs: verify-testpypi
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distribution: jharness-kernel
+            archive_prefix: jharness_kernel
+            environment: pypi-jharness-kernel
+          - distribution: jharness-toolkit
+            archive_prefix: jharness_toolkit
+            environment: pypi-jharness-toolkit
+          - distribution: jharness-providers
+            archive_prefix: jharness_providers
+            environment: pypi-jharness-providers
     environment:
-      name: pypi
-      url: https://pypi.org/p/jharness-kernel
+      name: ${{ matrix.environment }}
+      url: https://pypi.org/p/${{ matrix.distribution }}
     permissions:
       id-token: write
 
@@ -177,8 +209,14 @@ jobs:
           name: distributions-${{ github.ref_name }}
           path: dist
 
-      - name: Remove non-distribution checksums
-        run: rm dist/SHA256SUMS
+      - name: Select this distribution from the immutable artifact
+        shell: bash
+        env:
+          ARCHIVE_PREFIX: ${{ matrix.archive_prefix }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          find dist -maxdepth 1 -type f ! -name "${ARCHIVE_PREFIX}-${version}*" -delete
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
 
       - name: Publish with PyPI trusted publishing
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0

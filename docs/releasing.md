@@ -14,12 +14,20 @@ The `conformance` workspace project is never published.
 Before the first release, a repository administrator must configure these external
 controls. They cannot be expressed solely in the repository:
 
-1. Create GitHub environments named `testpypi` and `pypi`.
-2. Require an authorized maintainer's approval for the `pypi` environment. TestPyPI
-   may remain automatic.
-3. For all three project names, configure a Trusted Publisher on TestPyPI and PyPI:
-   repository `Ezio2000/jharness-python`, workflow `release.yml`, with the matching
-   `testpypi` or `pypi` environment name.
+1. Create one GitHub environment per distribution and package index:
+
+   | Distribution | TestPyPI environment | PyPI environment |
+   | --- | --- | --- |
+   | `jharness-kernel` | `testpypi-jharness-kernel` | `pypi-jharness-kernel` |
+   | `jharness-toolkit` | `testpypi-jharness-toolkit` | `pypi-jharness-toolkit` |
+   | `jharness-providers` | `testpypi-jharness-providers` | `pypi-jharness-providers` |
+
+2. Require an authorized maintainer's approval for each `pypi-*` environment.
+   TestPyPI environments may remain automatic.
+3. Configure one Pending Trusted Publisher for every table row on both TestPyPI
+   and PyPI. Each publisher uses repository `Ezio2000/jharness-python`, workflow
+   `release.yml`, and its exact environment name from the table. Separate
+   environments give each new project a unique initial OIDC identity.
 4. Protect `main`: require pull requests, the CI jobs, resolved review comments, and
    a linear or otherwise intentional history policy.
 5. Protect `v*` tags so only release maintainers can create or delete them.
@@ -79,10 +87,11 @@ The tag starts `.github/workflows/release.yml`, which:
 2. reruns lint, formatting, strict types, tests with coverage, conformance, and benchmark;
 3. builds the three wheels and three source distributions exactly once;
 4. verifies archive ownership, isolated imports, package metadata, and checksums;
-5. publishes those artifacts to TestPyPI using trusted publishing;
+5. publishes each distribution to TestPyPI through its own trusted publisher;
 6. installs all three TestPyPI versions and executes public smoke examples;
-7. pauses for the configured `pypi` environment approval;
-8. publishes the same artifacts to PyPI and verifies a clean PyPI installation;
+7. pauses for the three configured `pypi-*` environment approvals;
+8. publishes each distribution through its own PyPI trusted publisher and verifies
+   a clean installation;
 9. creates the GitHub Release with all distributions and `SHA256SUMS`.
 
 The release is complete only when every job is green and all three PyPI projects show

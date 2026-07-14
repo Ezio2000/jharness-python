@@ -20,6 +20,7 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Tool registry, validation, function adapters, retries, and circuit breaking.
 - OpenAI Chat Completions, Anthropic Messages, and DeepSeek provider profiles.
 - Portable v0 contracts, 66 conformance cases, diagnostics, and trace verification.
+- Per-distribution Trusted Publisher environments for credential-free first releases.
 
 [Unreleased]: https://github.com/Ezio2000/jharness-python/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Ezio2000/jharness-python/releases/tag/v0.1.0
