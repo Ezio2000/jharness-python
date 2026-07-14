@@ -27,13 +27,37 @@ def test_release_workflow_uses_one_artifact_and_trusted_publishers() -> None:
     assert "publish-testpypi" in workflow
     assert "verify-testpypi" in workflow
     assert "publish-pypi" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "source_run_id:" in workflow
     assert "id-token: write" in workflow
     for distribution in ("kernel", "toolkit", "providers"):
         assert f"testpypi-jharness-{distribution}" in workflow
         assert f"pypi-jharness-{distribution}" in workflow
     assert workflow.count("archive_prefix:") == 6
-    assert workflow.count("find dist -maxdepth 1") == 4
+    assert workflow.count("find dist -maxdepth 1") == 5
     assert "actions/upload-artifact@" in workflow
-    assert workflow.count("actions/download-artifact@") == 3
+    assert workflow.count("actions/download-artifact@") == 4
     assert "gh release create" in workflow
-    assert 'version="${GITHUB_REF_NAME#v}"' in workflow
+    assert 'version="${RELEASE_TAG#v}"' in workflow
+    assert 'python scripts/verify_testpypi.py "${RELEASE_TAG#v}"' in workflow
+    assert "required reviewers" not in workflow.lower()
+
+
+def test_testpypi_smoke_project_uses_an_explicit_index() -> None:
+    script = (ROOT / "scripts" / "verify_testpypi.py").read_text()
+    assert script.count('{{ index = "testpypi" }}') == 3
+    assert 'url = "https://test.pypi.org/simple"' in script
+    assert "explicit = true" in script
+    assert "jsonschema" not in script
+
+
+def test_testpypi_smoke_project_rejects_invalid_versions() -> None:
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "verify_testpypi.py"), "0.1.0; unsafe"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "invalid release version" in result.stderr

@@ -4,13 +4,28 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing immutable release tag to continue
+        required: true
+        type: string
+      source_run_id:
+        description: Release run containing the verified distributions artifact
+        required: true
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.release_tag || github.ref }}
   cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+  ARTIFACT_NAME: distributions-${{ inputs.release_tag || github.ref_name }}
 
 jobs:
   build:
@@ -19,30 +34,38 @@ jobs:
     timeout-minutes: 40
 
     steps:
-      - name: Check out tagged source
+      - name: Check out release source
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
+        if: github.event_name == 'push'
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
 
       - name: Install uv
+        if: github.event_name == 'push'
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           enable-cache: true
           cache-dependency-glob: python/uv.lock
 
       - name: Install locked dependencies
+        if: github.event_name == 'push'
         run: uv --project python sync --locked
 
       - name: Synchronize pinned specification
+        if: github.event_name == 'push'
         run: uv --project python run python scripts/sync_spec.py
 
       - name: Verify tag, coordinated versions, and changelog
-        run: uv --project python run python scripts/verify_release.py --tag "$GITHUB_REF_NAME"
+        if: github.event_name == 'push'
+        run: uv --project python run python scripts/verify_release.py --tag "$RELEASE_TAG"
 
       - name: Run release quality gate
+        if: github.event_name == 'push'
         shell: bash
         run: |
           uv --project python run ruff check --config python/pyproject.toml .
@@ -61,6 +84,7 @@ jobs:
           uv --project python run python benchmarks/runtime_smoke.py
 
       - name: Build the three product distributions
+        if: github.event_name == 'push'
         shell: bash
         run: |
           for package in jharness-kernel jharness-toolkit jharness-providers; do
@@ -68,16 +92,43 @@ jobs:
           done
 
       - name: Verify publishable artifacts
+        if: github.event_name == 'push'
         shell: bash
         run: |
           uv --project python run python scripts/verify_wheels.py dist
           uv --project python run twine check dist/*
           sha256sum dist/* > dist/SHA256SUMS
 
+      - name: Recover the verified artifact from the failed release
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: dist
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+
+      - name: Verify recovered run identity and artifact checksums
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          test "$RELEASE_TAG" = "v${RELEASE_TAG#v}"
+          tag_sha="$(git rev-list -n 1 "$RELEASE_TAG")"
+          run_sha="$(gh api \
+            "/repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" \
+            --jq .head_sha)"
+          test "$tag_sha" = "$run_sha"
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 7
+          (cd dist && sha256sum --check SHA256SUMS)
+
       - name: Store the immutable release artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: distributions-${{ github.ref_name }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: dist/
           if-no-files-found: error
           retention-days: 30
@@ -85,6 +136,7 @@ jobs:
   publish-testpypi:
     name: Publish ${{ matrix.distribution }} to TestPyPI
     needs: build
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -110,7 +162,7 @@ jobs:
       - name: Download the verified release artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: distributions-${{ github.ref_name }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: dist
 
       - name: Select this distribution from the immutable artifact
@@ -118,7 +170,7 @@ jobs:
         env:
           ARCHIVE_PREFIX: ${{ matrix.archive_prefix }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_TAG#v}"
           find dist -maxdepth 1 -type f ! -name "${ARCHIVE_PREFIX}-${version}*" -delete
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
 
@@ -131,7 +183,12 @@ jobs:
 
   verify-testpypi:
     name: Verify TestPyPI installation
-    needs: publish-testpypi
+    needs: [build, publish-testpypi]
+    if: >-
+      always() &&
+      needs.build.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.publish-testpypi.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -149,34 +206,7 @@ jobs:
 
       - name: Install from TestPyPI and run public smoke examples
         shell: bash
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          for attempt in {1..12}; do
-            if uv run \
-              --isolated \
-              --refresh \
-              --index https://test.pypi.org/simple \
-              --default-index https://pypi.org/simple \
-              --with "jharness-kernel==$VERSION" \
-              --with "jharness-toolkit==$VERSION" \
-              --with "jharness-providers==$VERSION" \
-              python examples/python/basic_tool_loop.py; then
-              uv run \
-                --isolated \
-                --refresh \
-                --index https://test.pypi.org/simple \
-                --default-index https://pypi.org/simple \
-                --with "jharness-kernel==$VERSION" \
-                --with "jharness-toolkit==$VERSION" \
-                --with "jharness-providers==$VERSION" \
-                python examples/python/pause_resume_trace.py
-              exit 0
-            fi
-            if [[ "$attempt" == 12 ]]; then
-              exit 1
-            fi
-            sleep 15
-          done
+        run: uv run --no-project python scripts/verify_testpypi.py "${RELEASE_TAG#v}"
 
   publish-pypi:
     name: Publish ${{ matrix.distribution }} to PyPI
@@ -206,7 +236,7 @@ jobs:
       - name: Download the same verified release artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: distributions-${{ github.ref_name }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: dist
 
       - name: Select this distribution from the immutable artifact
@@ -214,7 +244,7 @@ jobs:
         env:
           ARCHIVE_PREFIX: ${{ matrix.archive_prefix }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_TAG#v}"
           find dist -maxdepth 1 -type f ! -name "${ARCHIVE_PREFIX}-${version}*" -delete
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
 
@@ -241,7 +271,7 @@ jobs:
       - name: Install all products from PyPI
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_TAG#v}"
           for attempt in {1..12}; do
             if uv run \
               --isolated \
@@ -271,7 +301,7 @@ jobs:
       - name: Download release files and checksums
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: distributions-${{ github.ref_name }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: dist
 
       - name: Publish GitHub Release
@@ -280,14 +310,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           prerelease=()
-          version="${GITHUB_REF_NAME#v}"
+          version="${RELEASE_TAG#v}"
           if [[ "$version" =~ (a|b|rc|dev)[0-9]+ ]]; then
             prerelease=(--prerelease)
           fi
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "$RELEASE_TAG" \
             dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --generate-notes \
-            --title "JHarness $GITHUB_REF_NAME" \
+            --title "JHarness $RELEASE_TAG" \
             "${prerelease[@]}"

@@ -22,8 +22,8 @@ controls. They cannot be expressed solely in the repository:
    | `jharness-toolkit` | `testpypi-jharness-toolkit` | `pypi-jharness-toolkit` |
    | `jharness-providers` | `testpypi-jharness-providers` | `pypi-jharness-providers` |
 
-2. Require an authorized maintainer's approval for each `pypi-*` environment.
-   TestPyPI environments may remain automatic.
+2. Leave all six environments without required reviewers or wait timers so a release
+   tag can complete without manual intervention.
 3. Configure one Pending Trusted Publisher for every table row on both TestPyPI
    and PyPI. Each publisher uses repository `Ezio2000/jharness-python`, workflow
    `release.yml`, and its exact environment name from the table. Separate
@@ -95,12 +95,16 @@ The tag starts `.github/workflows/release.yml`, which:
 9. creates the GitHub Release with all distributions and `SHA256SUMS`.
 
 The release is complete only when every job is green and all three PyPI projects show
-the same version.
+the same version. No environment approval or package-index token is required.
 
 ## Failure and Recovery
 
 - Before PyPI publication, fix the release commit, choose a new version if TestPyPI
   already contains the old one, and create a new tag. Do not move a published tag.
+- If TestPyPI publication succeeded but a later pre-PyPI job failed, dispatch the same
+  release workflow with the immutable tag and source run ID. The recovery path checks
+  that the run belongs to the tagged commit, verifies every stored checksum, skips the
+  completed TestPyPI upload, and continues the automated pipeline.
 - After any PyPI artifact is published, never reuse or overwrite that version. Finish
   the coordinated set if safe; otherwise yank the affected version and publish a patch.
 - A GitHub Release failure after successful PyPI verification may be repaired by

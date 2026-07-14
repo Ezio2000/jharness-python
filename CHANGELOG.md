@@ -10,7 +10,10 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Nothing yet.
+- Made package-index publication fully unattended and added checksum-verified
+  continuation from an immutable release artifact.
+- Isolated TestPyPI package selection so third-party dependencies resolve only from
+  PyPI.
 
 ## [0.1.0] - 2026-07-15
 
