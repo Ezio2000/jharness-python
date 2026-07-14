@@ -39,7 +39,7 @@ def test_every_local_markdown_link_resolves() -> None:
     markdown_files.extend((ROOT / "tests").glob("*.md"))
     pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
     for path in markdown_files:
-        for target in pattern.findall(path.read_text()):
+        for target in pattern.findall(path.read_text(encoding="utf-8")):
             if target.startswith(("http://", "https://", "#")):
                 continue
             relative = target.split("#", 1)[0]
