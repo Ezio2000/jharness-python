@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Static quality and packaging
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: python/uv.lock
+
+      - name: Install locked dependencies
+        run: uv --project python sync --locked
+
+      - name: Synchronize pinned specification
+        run: uv --project python run python scripts/sync_spec.py
+
+      - name: Smoke test conformance entry point
+        run: uv --project python run conformance --help
+
+      - name: Verify coordinated release metadata
+        run: uv --project python run python scripts/verify_release.py
+
+      - name: Check public export documentation
+        shell: bash
+        run: |
+          uv --project python run python - <<'PY'
+          import importlib
+          import inspect
+          import typing
+
+          packages = (
+              "jharness.kernel",
+              "jharness.toolkit",
+              "jharness.kernel.diagnostics",
+              "jharness.providers.openai",
+              "jharness.providers.anthropic",
+              "jharness.providers.deepseek",
+              "conformance",
+          )
+          missing = {}
+          for package_name in packages:
+              package = importlib.import_module(package_name)
+              names = [
+                  name
+                  for name in getattr(package, "__all__", ())
+                  if typing.get_origin(getattr(package, name)) is None
+                  and inspect.getdoc(getattr(package, name)) is None
+              ]
+              if names:
+                  missing[package_name] = names
+          if missing:
+              raise SystemExit(f"public exports missing docstrings: {missing}")
+          print("public export documentation ok")
+          PY
+
+      - name: Lint
+        run: uv --project python run ruff check --config python/pyproject.toml .
+
+      - name: Check formatting
+        run: uv --project python run ruff format --check --config python/pyproject.toml .
+
+      - name: Type-check
+        run: uv --project python run pyright --project python
+
+      - name: Test with branch coverage
+        env:
+          COVERAGE_FILE: ${{ runner.temp }}/.coverage
+        run: >-
+          uv --project python run pytest
+          -c python/pyproject.toml
+          -q
+          -p no:cacheprovider
+          --cov
+          --cov-config=python/pyproject.toml
+          --cov-report=term-missing:skip-covered
+
+      - name: Repeat timing and ownership regressions
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            uv --project python run pytest \
+              -c python/pyproject.toml \
+              -q \
+              -p no:cacheprovider \
+              python/kernel/tests/test_runtime.py \
+              python/kernel/tests/test_diagnostics.py
+          done
+
+      - name: Build and verify the three product distributions
+        shell: bash
+        run: |
+          for package in jharness-kernel jharness-toolkit jharness-providers; do
+            uv --project python build \
+              --package "$package" \
+              --out-dir "$RUNNER_TEMP/dist"
+          done
+          uv --project python run python scripts/verify_wheels.py "$RUNNER_TEMP/dist"
+
+  runtime:
+    name: Python ${{ matrix.python-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: python/uv.lock
+
+      - name: Install locked dependencies
+        run: uv --project python sync --locked
+
+      - name: Synchronize pinned specification
+        run: uv --project python run python scripts/sync_spec.py
+
+      - name: Test runtime
+        run: uv --project python run pytest -c python/pyproject.toml -q -p no:cacheprovider
+
+      - name: Run conformance CLI
+        run: >-
+          uv --project python run conformance
+          .jharness-spec/conformance/cases
+          --spec-dir .jharness-spec/contracts/v0
+
+      - name: Run benchmark
+        run: uv --project python run python benchmarks/runtime_smoke.py

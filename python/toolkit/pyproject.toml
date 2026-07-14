@@ -1,0 +1,43 @@
+[project]
+name = "jharness-toolkit"
+version = "0.1.0"
+description = "JHarness tool registry, validation helpers, and execution decorators"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "JHarness contributors" }]
+keywords = ["ai", "agent", "json-schema", "tools"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Typing :: Typed",
+]
+dependencies = [
+  "jsonschema>=4.23.0",
+  "jharness-kernel>=0.1.0,<0.2.0",
+  "referencing>=0.35.0",
+]
+
+[project.urls]
+Documentation = "https://github.com/Ezio2000/jharness-python/tree/main/docs"
+Homepage = "https://github.com/Ezio2000/jharness-python"
+Issues = "https://github.com/Ezio2000/jharness-python/issues"
+Repository = "https://github.com/Ezio2000/jharness-python.git"
+
+[tool.uv.sources]
+jharness-kernel = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jharness"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

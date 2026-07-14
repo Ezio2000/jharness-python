@@ -1,0 +1,28 @@
+[project]
+name = "conformance"
+version = "0.1.0"
+description = "Conformance runner for model-neutral runtime implementations"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "runtime contributors" }]
+dependencies = [
+  "jsonschema>=4.23.0",
+  "jharness-kernel>=0.1.0,<0.2.0",
+  "referencing>=0.35.0",
+  "jharness-toolkit>=0.1.0,<0.2.0",
+]
+
+[project.scripts]
+conformance = "conformance.cli:main"
+
+[tool.uv.sources]
+jharness-kernel = { workspace = true }
+jharness-toolkit = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/conformance"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,255 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Verify and build once
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: python/uv.lock
+
+      - name: Install locked dependencies
+        run: uv --project python sync --locked
+
+      - name: Synchronize pinned specification
+        run: uv --project python run python scripts/sync_spec.py
+
+      - name: Verify tag, coordinated versions, and changelog
+        run: uv --project python run python scripts/verify_release.py --tag "$GITHUB_REF_NAME"
+
+      - name: Run release quality gate
+        shell: bash
+        run: |
+          uv --project python run ruff check --config python/pyproject.toml .
+          uv --project python run ruff format --check --config python/pyproject.toml .
+          uv --project python run pyright --project python
+          uv --project python run pytest \
+            -c python/pyproject.toml \
+            -q \
+            -p no:cacheprovider \
+            --cov \
+            --cov-config=python/pyproject.toml \
+            --cov-report=term-missing:skip-covered
+          uv --project python run conformance \
+            .jharness-spec/conformance/cases \
+            --spec-dir .jharness-spec/contracts/v0
+          uv --project python run python benchmarks/runtime_smoke.py
+
+      - name: Build the three product distributions
+        shell: bash
+        run: |
+          for package in jharness-kernel jharness-toolkit jharness-providers; do
+            uv --project python build --package "$package" --out-dir dist
+          done
+
+      - name: Verify publishable artifacts
+        shell: bash
+        run: |
+          uv --project python run python scripts/verify_wheels.py dist
+          uv --project python run twine check dist/*
+          sha256sum dist/* > dist/SHA256SUMS
+
+      - name: Store the immutable release artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: distributions-${{ github.ref_name }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/jharness-kernel
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download the verified release artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: distributions-${{ github.ref_name }}
+          path: dist
+
+      - name: Remove non-distribution checksums
+        run: rm dist/SHA256SUMS
+
+      - name: Publish with TestPyPI trusted publishing
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+          attestations: false
+
+  verify-testpypi:
+    name: Verify TestPyPI installation
+    needs: publish-testpypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out smoke examples
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install from TestPyPI and run public smoke examples
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          for attempt in {1..12}; do
+            if uv run \
+              --isolated \
+              --refresh \
+              --index https://test.pypi.org/simple \
+              --default-index https://pypi.org/simple \
+              --with "jharness-kernel==$VERSION" \
+              --with "jharness-toolkit==$VERSION" \
+              --with "jharness-providers==$VERSION" \
+              python examples/python/basic_tool_loop.py; then
+              uv run \
+                --isolated \
+                --refresh \
+                --index https://test.pypi.org/simple \
+                --default-index https://pypi.org/simple \
+                --with "jharness-kernel==$VERSION" \
+                --with "jharness-toolkit==$VERSION" \
+                --with "jharness-providers==$VERSION" \
+                python examples/python/pause_resume_trace.py
+              exit 0
+            fi
+            if [[ "$attempt" == 12 ]]; then
+              exit 1
+            fi
+            sleep 15
+          done
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: verify-testpypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/p/jharness-kernel
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download the same verified release artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: distributions-${{ github.ref_name }}
+          path: dist
+
+      - name: Remove non-distribution checksums
+        run: rm dist/SHA256SUMS
+
+      - name: Publish with PyPI trusted publishing
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          packages-dir: dist/
+
+  verify-pypi:
+    name: Verify PyPI installation
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install all products from PyPI
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          for attempt in {1..12}; do
+            if uv run \
+              --isolated \
+              --refresh \
+              --with "jharness-kernel==$VERSION" \
+              --with "jharness-toolkit==$VERSION" \
+              --with "jharness-providers==$VERSION" \
+              python -I -c \
+              "import jharness.kernel, jharness.toolkit, jharness.providers"; then
+              exit 0
+            fi
+            if [[ "$attempt" == 12 ]]; then
+              exit 1
+            fi
+            sleep 15
+          done
+
+  github-release:
+    name: Create GitHub Release
+    needs: verify-pypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release files and checksums
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: distributions-${{ github.ref_name }}
+          path: dist
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=()
+          version="${GITHUB_REF_NAME#v}"
+          if [[ "$version" =~ (a|b|rc|dev)[0-9]+ ]]; then
+            prerelease=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --generate-notes \
+            --title "JHarness $GITHUB_REF_NAME" \
+            "${prerelease[@]}"
