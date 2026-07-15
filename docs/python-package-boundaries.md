@@ -18,6 +18,12 @@ The product has exactly three published distributions:
 depend on `jharness-kernel` and `jharness-toolkit`, and is excluded from product
 builds and published artifact verification.
 
+The optional [`jharness-tools`](https://github.com/Ezio2000/jharness-tools) project is
+maintained in a separate repository. It is not a workspace project or coordinated
+product distribution here. Its independently versioned distribution may depend on
+the public kernel and toolkit APIs; the dependency never points back from this
+repository to preset tools.
+
 `jharness.kernel.diagnostics` and `jharness.kernel.wire` are subpackages of the
 kernel distribution. They are not separate manifests or versioned artifacts.
 
@@ -38,6 +44,9 @@ Only the documented `jharness.*` roots are product interfaces. Source
 distributions, wheels, examples, tests, and documentation use those roots
 directly.
 
+An installation may also contain the externally owned `jharness.tools` child package.
+No artifact built by this repository owns or writes files into that subtree.
+
 ## Dependency Graph
 
 ```text
@@ -46,6 +55,9 @@ jharness.kernel
 └── jharness.providers
 
 conformance (development only) -> jharness.kernel, jharness.toolkit
+
+jharness.kernel -> jharness.tools (external)
+jharness.toolkit -> jharness.tools (external)
 ```
 
 The diagram points from a dependency to its dependent. `jharness.kernel`
@@ -142,6 +154,8 @@ unrelated invariants out of one module even when that module is still small.
   `jharness.kernel.diagnostics` and use the kernel's pure change verifier.
 - Concrete Python tool adaptation, compiled JSON Schema validation, and tool
   execution decorators belong in `jharness.toolkit`.
+- Ready-to-use preset tool implementations belong in the independent
+  `Ezio2000/jharness-tools` project, not in this workspace.
 - Provider HTTP/SSE transport and wire codecs belong in `jharness.providers`.
 - Fixture parsing, controlled doubles, behavior execution, and schema inventory
   belong in the development-only `conformance` project.
@@ -191,6 +205,10 @@ portable contracts change atomically.
 External implementations depend on kernel ports. The kernel never discovers or
 imports them dynamically. Extension uses narrow protocols, pure strategies, and
 decorators.
+
+The independently managed `jharness-tools` project is one such extension. Installing
+it is optional and cannot cause this repository's runtime packages to discover or
+activate tools automatically.
 
 General hooks, service locators, plugin registries, execution schedulers,
 reflection serializers, and compatibility packages are outside the package
