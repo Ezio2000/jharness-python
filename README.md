@@ -27,6 +27,11 @@ from jharness.toolkit import ToolRegistry
 There is no `jharness-python` meta distribution and no `jharness_python` import.
 The repository name is only the source-management boundary.
 
+Ready-to-use preset tool implementations are maintained separately in
+[`Ezio2000/jharness-tools`](https://github.com/Ezio2000/jharness-tools). That project
+is optional, independently versioned, and never a dependency of the kernel, toolkit,
+or providers published from this repository.
+
 ## Implemented Specification
 
 The exact specification tag, commit, and archive digest are recorded in
@@ -59,3 +64,4 @@ uv run python benchmarks/runtime_smoke.py
 - [Provider adapters](docs/model-providers.md)
 - [Performance](docs/performance.md)
 - [Release process](docs/releasing.md)
+- [Preset tools](https://github.com/Ezio2000/jharness-tools)

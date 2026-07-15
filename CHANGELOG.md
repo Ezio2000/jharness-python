@@ -8,6 +8,11 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Established `jharness-tools` as an independently versioned external project rather
+  than a fourth distribution in this repository.
+
 ## [0.1.2] - 2026-07-15
 
 ### Changed

@@ -8,6 +8,7 @@ This repository records only Python packaging and implementation decisions:
 | ADR | Decision |
 | --- | --- |
 | [0009](0009-product-distributions.md) | Publish exactly three Python product distributions. |
+| [0010](0010-external-tools-project.md) | Maintain preset tools as an independent external project. |
 
 Changing a portable behavior starts in the specification repository. Python-only
 decisions update implementation, tests, examples, documentation, and package metadata

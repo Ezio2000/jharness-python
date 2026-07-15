@@ -32,6 +32,11 @@ kernel has no workspace or third-party runtime dependency. Toolkit and providers
 depend on kernel and their declared direct dependencies. No published distribution
 may import `conformance`.
 
+Preset implementations are maintained in the independent `Ezio2000/jharness-tools`
+repository. That external project may depend on the public kernel and toolkit APIs;
+this repository must never depend on or import `jharness.tools`. Kernel remains
+sufficient for applications that provide their own implementations through its ports.
+
 Use immutable values, narrow async ports, pure policies, structural sharing, bounded
 concurrency, monotonic deadlines, and atomic model-order commits. Do not add runtime
 mutation hooks, schedulers, split persistence, reflection serialization, or duplicate
